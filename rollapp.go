@@ -13,10 +13,10 @@ import (
 )
 
 type RollApp struct {
-	server *gin.Engine
-	db     []merkletree.Content
-	tree   *merkletree.MerkleTree
-	// list   []Tx
+	server  *gin.Engine
+	db      []merkletree.Content
+	tree    *merkletree.MerkleTree
+	tx_list []types.Tx
 }
 
 func (r *RollApp) Init() {
@@ -59,8 +59,8 @@ func (r *RollApp) handleTx(c *gin.Context) {
 	fmt.Printf("State transition requested by %s\n", address.Hex())
 
 	for idx, content := range r.db {
-		userTodos := content.(UserTodos)
-		if userTodos.account == address.Hex() {
+		userTodos := content.(types.UserTodos)
+		if userTodos.Account == address.Hex() {
 			// Found user
 			log.Println("Found user!")
 			// Try to update user's todos
@@ -79,6 +79,7 @@ func (r *RollApp) handleTx(c *gin.Context) {
 			r.tree = t
 
 			// Update tx list
+			r.updateTxList(tx)
 
 			c.JSON(200, gin.H{"status": "State transition successful"})
 		}
@@ -86,29 +87,32 @@ func (r *RollApp) handleTx(c *gin.Context) {
 
 	c.JSON(200, gin.H{"status": "State transition failed! Could not find user!"})
 	log.Println("State transition failed! Could not find user!")
-	// Validate tx
-	// Make sure user exists
-	// Make sure nonce is correct
-	// Make sure tx is signed
 
-	// Add tx to list
-	// Submit batch to aggregator if we have enough txs
 }
 
-func (r *RollApp) updateState(userTodos UserTodos, m types.Message) (UserTodos, error) {
+func (r *RollApp) updateState(userTodos types.UserTodos, m types.Message) (types.UserTodos, error) {
 	switch m.Action {
 	case "add_todo":
-		userTodos.todos = append(userTodos.todos, m.Content)
+		userTodos.Todos = append(userTodos.Todos, m.Content)
+		userTodos.Nonce++
 	case "mark_done":
-		if m.Index < len(userTodos.todos) && m.Index >= 0 {
-			userTodos.todos[m.Index] = userTodos.todos[len(userTodos.todos)-1]
-			userTodos.todos = userTodos.todos[:len(userTodos.todos)-1]
+		if m.Index < len(userTodos.Todos) && m.Index >= 0 {
+			userTodos.Todos[m.Index] = userTodos.Todos[len(userTodos.Todos)-1]
+			userTodos.Todos = userTodos.Todos[:len(userTodos.Todos)-1]
+			userTodos.Nonce++
 		} else {
-			return UserTodos{}, fmt.Errorf("Invalid index: %d", m.Index)
+			return types.UserTodos{}, fmt.Errorf("Invalid index: %d", m.Index)
 		}
 	default:
-		return UserTodos{}, fmt.Errorf("Invalid action: %s", m.Action)
+		return types.UserTodos{}, fmt.Errorf("Invalid action: %s", m.Action)
 	}
 
 	return userTodos, nil
+}
+
+func (r *RollApp) updateTxList(tx types.Tx) {
+	r.tx_list = append(r.tx_list, tx)
+	if len(r.tx_list) > 10 {
+		// Submit batch to aggregator
+	}
 }
