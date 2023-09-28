@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"stackr-mvp/types"
 
 	"github.com/cbergoon/merkletree"
@@ -37,7 +39,8 @@ func (r *RollApp) handleTx(c *gin.Context) {
 
 	sigBytes, _ := hexutil.Decode(tx.Signature)
 
-	hash := crypto.Keccak256Hash([]byte(tx.Message))
+	messageBytes, _ := json.Marshal(tx.Message)
+	hash := crypto.Keccak256Hash([]byte(messageBytes))
 	pubKey, err := crypto.Ecrecover(hash.Bytes(), sigBytes)
 	if err != nil {
 		fmt.Println(err)
@@ -54,12 +57,58 @@ func (r *RollApp) handleTx(c *gin.Context) {
 	// Perform state transition here, for example, updating balances, and respond
 	// accordingly
 	fmt.Printf("State transition requested by %s\n", address.Hex())
-	c.JSON(200, gin.H{"status": "State transition successful"})
+
+	for idx, content := range r.db {
+		userTodos := content.(UserTodos)
+		if userTodos.account == address.Hex() {
+			// Found user
+			log.Println("Found user!")
+			// Try to update user's todos
+			newUserTodo, err := r.updateState(userTodos, tx.Message)
+			if err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+
+			// Update db and recalculate merkle tree
+			r.db[idx] = newUserTodo
+			t, err := merkletree.NewTree(r.db)
+			if err != nil {
+				log.Fatal(err)
+			}
+			r.tree = t
+
+			// Update tx list
+
+			c.JSON(200, gin.H{"status": "State transition successful"})
+		}
+	}
+
+	c.JSON(200, gin.H{"status": "State transition failed! Could not find user!"})
+	log.Println("State transition failed! Could not find user!")
 	// Validate tx
 	// Make sure user exists
 	// Make sure nonce is correct
 	// Make sure tx is signed
-	// Update and create new state tree
+
 	// Add tx to list
 	// Submit batch to aggregator if we have enough txs
+}
+
+func (r *RollApp) updateState(userTodos UserTodos, m types.Message) (UserTodos, error) {
+	switch m.Action {
+	case "add_todo":
+		userTodos.todos = append(userTodos.todos, m.Content)
+	case "mark_done":
+		if m.Index < len(userTodos.todos) && m.Index >= 0 {
+			userTodos.todos[m.Index] = userTodos.todos[len(userTodos.todos)-1]
+			userTodos.todos = userTodos.todos[:len(userTodos.todos)-1]
+		} else {
+			return UserTodos{}, fmt.Errorf("Invalid index: %d", m.Index)
+		}
+	default:
+		return UserTodos{}, fmt.Errorf("Invalid action: %s", m.Action)
+	}
+
+	return userTodos, nil
 }

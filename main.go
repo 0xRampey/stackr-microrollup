@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/cbergoon/merkletree"
@@ -16,22 +15,16 @@ func main() {
 	list = append(list, UserTodos{account: "Alice", nonce: 1, todos: []string{"a", "b", "c"}})
 	list = append(list, UserTodos{account: "Bob", nonce: 2, todos: []string{"a", "b", "c"}})
 
-	//Create a new Merkle Tree from the list of Content
-	t, err := merkletree.NewTree(list)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// //Get the Merkle Root of the tree
+	// mr := t.MerkleRoot()
+	// log.Println(mr)
 
-	//Get the Merkle Root of the tree
-	mr := t.MerkleRoot()
-	log.Println(mr)
-
-	//Verify the entire tree (hashes for each node) is valid
-	vt, err := t.VerifyTree()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Verify Tree: ", vt)
+	// //Verify the entire tree (hashes for each node) is valid
+	// vt, err := t.VerifyTree()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Verify Tree: ", vt)
 
 	app := RollApp{}
 	app.Init()

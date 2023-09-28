@@ -19,21 +19,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	message := map[string]interface{}{
-		"action": "add_todo",
-		"index":  0,
+	message := types.Message{
+		Action:  "add_todo",
+		Index:   0,
+		Content: "build a blockchain today",
 	}
 	messageBytes, _ := json.Marshal(message)
-	messageStr := string(messageBytes)
 
-	hash := crypto.Keccak256Hash([]byte(messageStr))
+	hash := crypto.Keccak256Hash(messageBytes)
 	signature, err := crypto.Sign(hash.Bytes(), privateKey)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	request := &types.Tx{
-		Message:   messageStr,
+		Message:   message,
 		Signature: hexutil.Encode(signature),
 	}
 	requestBytes, _ := json.Marshal(request)
@@ -52,4 +52,5 @@ func main() {
 	}
 
 	fmt.Println("Message sent successfully!")
+	fmt.Println("Response: ", resp.Status, resp.Body)
 }
