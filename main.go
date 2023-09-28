@@ -32,6 +32,9 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("Verify Tree: ", vt)
+
+	app := RollApp{}
+	app.Init()
 }
 
 type UserTodos struct {
