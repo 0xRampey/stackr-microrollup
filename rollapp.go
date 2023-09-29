@@ -22,10 +22,10 @@ type RollApp struct {
 	db            []merkletree.Content
 	tree          *merkletree.MerkleTree
 	tx_list       []types.Tx
-	batch_channel *chan types.Batch // Send batches to aggregator instead of RPC
+	batch_channel chan types.Batch // Send batches to aggregator instead of RPC
 }
 
-func (r *RollApp) Init(c *chan types.Batch) {
+func (r *RollApp) Init(c chan types.Batch) {
 	log.Println("Initializing RollApp.....")
 	// Backfill past events
 	r.backfill()
@@ -169,11 +169,13 @@ func (r *RollApp) updateState(userTodos types.UserTodos, m types.Message) (types
 
 func (r *RollApp) updateTxList(tx types.Tx) {
 	r.tx_list = append(r.tx_list, tx)
-	if len(r.tx_list) > 2 {
+	if len(r.tx_list) > 2 { // Batch every x txs (2 here for testing purposes)
 		// Submit batch to aggregator
 		batch := types.Batch{
 			Tx_list: r.tx_list,
 		}
-		*r.batch_channel <- batch
+		r.batch_channel <- batch
+		// Flush txs
+		r.tx_list = []types.Tx{}
 	}
 }

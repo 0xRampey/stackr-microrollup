@@ -1,15 +1,20 @@
 package main
 
-import "stackr-mvp/types"
+import (
+	"log"
+	"stackr-mvp/types"
+)
 
 func main() {
+	// Send batches to aggregator through channels instead of RPC
+	batchChannel := make(chan types.Batch)
+	app := RollApp{}
+	go app.Init(batchChannel)
+
 	agg := Aggregator{}
 	agg.Init()
 
-	batchChannel := make(chan types.Batch)
-
-	app := RollApp{}
-	app.Init(&batchChannel)
+	log.Println("Aggregator waiting for batches.....")
 
 	for batch := range batchChannel {
 		agg.submitBatch(batch)
