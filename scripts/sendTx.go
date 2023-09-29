@@ -14,7 +14,7 @@ import (
 
 func main() {
 	// Load a user's private key
-	privateKey, err := crypto.HexToECDSA("fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19")
+	privateKey, err := crypto.HexToECDSA("59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d")
 	if err != nil {
 		log.Fatal(err)
 	}

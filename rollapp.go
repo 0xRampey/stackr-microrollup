@@ -22,10 +22,10 @@ type RollApp struct {
 	db            []merkletree.Content
 	tree          *merkletree.MerkleTree
 	tx_list       []types.Tx
-	batch_channel chan types.Batch // Send batches to aggregator instead of RPC
+	batch_channel *chan types.Batch // Send batches to aggregator instead of RPC
 }
 
-func (r *RollApp) Init(c chan types.Batch) {
+func (r *RollApp) Init(c *chan types.Batch) {
 	log.Println("Initializing RollApp.....")
 	// Backfill past events
 	r.backfill()
@@ -131,7 +131,10 @@ func (r *RollApp) handleTx(c *gin.Context) {
 			// Update tx list
 			r.updateTxList(tx)
 
+			log.Printf("User's new state: %+v\n", newUserTodo)
+
 			c.JSON(200, gin.H{"status": "State transition successful"})
+			return
 		}
 	}
 
@@ -144,11 +147,15 @@ func (r *RollApp) updateState(userTodos types.UserTodos, m types.Message) (types
 	switch m.Action {
 	case "add_todo":
 		userTodos.Todos = append(userTodos.Todos, m.Content)
+		userTodos.Balance.Sub(userTodos.Balance, big.NewInt(100000)) // Deduct for gas fees
+		// TODO: Send gas fees to App/Aggregator
 		userTodos.Nonce++
 	case "mark_done":
 		if m.Index < len(userTodos.Todos) && m.Index >= 0 {
 			userTodos.Todos[m.Index] = userTodos.Todos[len(userTodos.Todos)-1]
 			userTodos.Todos = userTodos.Todos[:len(userTodos.Todos)-1]
+			userTodos.Balance.Sub(userTodos.Balance, big.NewInt(100000)) // Deduct for gas fees
+			// TODO: Send gas fees to App/Aggregator
 			userTodos.Nonce++
 		} else {
 			return types.UserTodos{}, fmt.Errorf("Invalid index: %d", m.Index)
@@ -167,6 +174,6 @@ func (r *RollApp) updateTxList(tx types.Tx) {
 		batch := types.Batch{
 			Tx_list: r.tx_list,
 		}
-		r.batch_channel <- batch
+		*r.batch_channel <- batch
 	}
 }

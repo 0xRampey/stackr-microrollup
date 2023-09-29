@@ -9,7 +9,7 @@ func main() {
 	batchChannel := make(chan types.Batch)
 
 	app := RollApp{}
-	app.Init(batchChannel)
+	app.Init(&batchChannel)
 
 	for batch := range batchChannel {
 		agg.submitBatch(batch)
