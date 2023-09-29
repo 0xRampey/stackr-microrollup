@@ -9,6 +9,10 @@ import (
 	"github.com/cbergoon/merkletree"
 )
 
+type Batch struct {
+	Tx_list []Tx
+}
+
 type Tx struct { // Let's keep it simple for now
 	Message   Message `json:"message"`
 	Signature string  `json:"signature"`

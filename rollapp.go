@@ -13,13 +13,15 @@ import (
 )
 
 type RollApp struct {
-	server  *gin.Engine
-	db      []merkletree.Content
-	tree    *merkletree.MerkleTree
-	tx_list []types.Tx
+	server        *gin.Engine
+	db            []merkletree.Content
+	tree          *merkletree.MerkleTree
+	tx_list       []types.Tx
+	batch_channel chan types.Batch // Send batches to aggregator instead of RPC
 }
 
-func (r *RollApp) Init() {
+func (r *RollApp) Init(c chan types.Batch) {
+	r.batch_channel = c
 	// Backfill past events
 	// Calculate state tree
 	// Start server
@@ -112,7 +114,11 @@ func (r *RollApp) updateState(userTodos types.UserTodos, m types.Message) (types
 
 func (r *RollApp) updateTxList(tx types.Tx) {
 	r.tx_list = append(r.tx_list, tx)
-	if len(r.tx_list) > 10 {
+	if len(r.tx_list) > 2 {
 		// Submit batch to aggregator
+		batch := types.Batch{
+			Tx_list: r.tx_list,
+		}
+		r.batch_channel <- batch
 	}
 }
