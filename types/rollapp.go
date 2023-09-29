@@ -4,9 +4,11 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/cbergoon/merkletree"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type Batch struct {
@@ -28,6 +30,7 @@ type UserTodos struct {
 	Account string
 	Nonce   int
 	Todos   []string
+	Balance *big.Int
 }
 
 func (ut UserTodos) CalculateHash() ([]byte, error) {
@@ -47,4 +50,10 @@ func (ut UserTodos) Equals(other merkletree.Content) (bool, error) {
 		return false, errors.New("value is not of type UserTodos")
 	}
 	return ut.Account == otherUT.Account, nil
+}
+
+// Define a struct for the Deposit event using tags to associate event field names to struct fields
+type DepositEvent struct {
+	User   common.Address
+	Amount *big.Int
 }

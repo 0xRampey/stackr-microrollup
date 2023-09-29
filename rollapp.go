@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"stackr-mvp/types"
 
 	"github.com/cbergoon/merkletree"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,14 +26,57 @@ type RollApp struct {
 }
 
 func (r *RollApp) Init(c chan types.Batch) {
-	r.batch_channel = c
+	log.Println("Initializing RollApp.....")
 	// Backfill past events
+	r.backfill()
+
 	// Calculate state tree
+	t, err := merkletree.NewTree(r.db)
+	if err != nil {
+		log.Fatal(err)
+	}
+	r.tree = t
+
 	// Start server
 	r.server = gin.Default()
 	r.server.POST("/tx", r.handleTx)
-	fmt.Println("RollApp initialized")
+	log.Println("RollApp initialized!")
+
+	// Initialise batch channel
+	r.batch_channel = c
 	r.server.Run(":8080")
+}
+
+func (r *RollApp) backfill() {
+	client, err := ethclient.Dial("http://127.0.0.1:8545")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	contractAddress := common.HexToAddress("0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0")
+	query := ethereum.FilterQuery{
+		Addresses: []common.Address{contractAddress},
+	}
+
+	logs, err := client.FilterLogs(context.Background(), query)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Handle logs from the past (backfill)
+	for _, vLog := range logs {
+		deposit := types.DepositEvent{
+			User:   common.BytesToAddress(vLog.Topics[1].Bytes()),
+			Amount: new(big.Int).SetBytes(vLog.Data),
+		}
+		log.Printf("Deposit Event: %+v\n", deposit)
+		r.db = append(r.db, types.UserTodos{
+			Account: deposit.User.Hex(),
+			Nonce:   0,
+			Todos:   []string{},
+			Balance: deposit.Amount,
+		})
+	}
 }
 
 func (r *RollApp) handleTx(c *gin.Context) {
