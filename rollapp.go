@@ -22,6 +22,7 @@ type RollApp struct {
 	db            []merkletree.Content
 	tree          *merkletree.MerkleTree
 	tx_list       []types.Tx
+	batches       []types.Batch
 	batch_channel chan types.Batch // Send batches to aggregator instead of RPC
 }
 
@@ -53,7 +54,7 @@ func (r *RollApp) backfill() {
 		log.Fatal(err)
 	}
 
-	contractAddress := common.HexToAddress("0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0")
+	contractAddress := common.HexToAddress("0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6")
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{contractAddress},
 	}
@@ -151,7 +152,7 @@ func (r *RollApp) updateState(userTodos types.UserTodos, m types.Message) (types
 		// TODO: Send gas fees to App/Aggregator
 		userTodos.Nonce++
 	case "mark_done":
-		if m.Index < len(userTodos.Todos) && m.Index >= 0 {
+		if int(m.Index) < len(userTodos.Todos) {
 			userTodos.Todos[m.Index] = userTodos.Todos[len(userTodos.Todos)-1]
 			userTodos.Todos = userTodos.Todos[:len(userTodos.Todos)-1]
 			userTodos.Balance.Sub(userTodos.Balance, big.NewInt(100000)) // Deduct for gas fees
@@ -171,7 +172,28 @@ func (r *RollApp) updateTxList(tx types.Tx) {
 	r.tx_list = append(r.tx_list, tx)
 	if len(r.tx_list) > 2 { // Batch every x txs (2 here for testing purposes)
 		// Submit batch to aggregator
+		log.Println("Submitting batch to aggregator.....")
+		prevHash := common.Hash(crypto.Keccak256Hash([]byte("Genesis Batch")))
+		if len(r.batches) > 0 {
+			prevHash = r.batches[len(r.batches)-1].Header.CalculateHash()
+		}
+
+		blocks := make([]merkletree.Content, 0, len(r.tx_list))
+		for _, tx := range r.tx_list {
+			blocks = append(blocks, tx)
+		}
+		txTree, err := merkletree.NewTree(blocks)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		header := types.BatchHeader{
+			PrevHash:  prevHash,
+			StateRoot: r.tree.Root,
+			TxRoot:    txTree.Root,
+		}
 		batch := types.Batch{
+			Header:  header,
 			Tx_list: r.tx_list,
 		}
 		r.batch_channel <- batch

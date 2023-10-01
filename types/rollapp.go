@@ -9,10 +9,23 @@ import (
 
 	"github.com/cbergoon/merkletree"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type Batch struct {
+	Header  BatchHeader
 	Tx_list []Tx
+}
+
+type BatchHeader struct {
+	PrevHash  common.Hash // Hash of previous batch's header
+	StateRoot *merkletree.Node
+	TxRoot    *merkletree.Node
+}
+
+func (bh BatchHeader) CalculateHash() common.Hash {
+	combined := append(bh.PrevHash.Bytes(), []byte(bh.StateRoot.String())...)
+	return common.Hash(crypto.Keccak256Hash(combined))
 }
 
 type Tx struct { // Let's keep it simple for now
@@ -20,10 +33,22 @@ type Tx struct { // Let's keep it simple for now
 	Signature string  `json:"signature"`
 }
 
+func (t Tx) CalculateHash() ([]byte, error) {
+	return crypto.Keccak256Hash([]byte(t.Signature)).Bytes(), nil
+}
+
+func (t Tx) Equals(other merkletree.Content) (bool, error) {
+	otherTx, ok := other.(Tx)
+	if !ok {
+		return false, errors.New("value is not of type Tx")
+	}
+	return t.Signature == otherTx.Signature, nil
+}
+
 type Message struct {
 	Action  string `json:"action"`
 	Content string `json:"content"`
-	Index   int    `json:"index"`
+	Index   uint   `json:"index"`
 }
 
 type UserTodos struct {
