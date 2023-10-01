@@ -25,7 +25,7 @@ contract Settlement {
     }
 
     bytes32[] public batches;
-    address public aggregator;
+    address public aggregator; // This could easily be a list of aggregators. Keeping it simple for now.
     
     modifier onlyAggregator() {
         require(msg.sender == aggregator, "Only aggregator can call this function");

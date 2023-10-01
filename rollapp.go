@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gin-gonic/gin"
@@ -24,10 +25,21 @@ type RollApp struct {
 	tx_list       []types.Tx
 	batches       []types.Batch
 	batch_channel chan types.Batch // Send batches to aggregator instead of RPC
+	ethClient     *ethclient.Client
+	l1Contract    common.Address
 }
 
-func (r *RollApp) Init(c chan types.Batch) {
-	log.Println("Initializing RollApp.....")
+func (r *RollApp) InitState() {
+	log.Println("Initializing RollApp state.....")
+	// Init eth client
+	client, err := ethclient.Dial("ws://127.0.0.1:8545")
+	if err != nil {
+		log.Fatal(err)
+	}
+	r.ethClient = client
+
+	r.l1Contract = common.HexToAddress("0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6")
+
 	// Backfill past events
 	r.backfill()
 
@@ -38,10 +50,13 @@ func (r *RollApp) Init(c chan types.Batch) {
 	}
 	r.tree = t
 
+}
+
+func (r *RollApp) InitServer(c chan types.Batch) {
 	// Start server
 	r.server = gin.Default()
 	r.server.POST("/tx", r.handleTx)
-	log.Println("RollApp initialized!")
+	log.Println("RollApp ready to receive txs.....")
 
 	// Initialise batch channel
 	r.batch_channel = c
@@ -49,17 +64,12 @@ func (r *RollApp) Init(c chan types.Batch) {
 }
 
 func (r *RollApp) backfill() {
-	client, err := ethclient.Dial("http://127.0.0.1:8545")
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	contractAddress := common.HexToAddress("0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6")
 	query := ethereum.FilterQuery{
-		Addresses: []common.Address{contractAddress},
+		Addresses: []common.Address{r.l1Contract},
 	}
 
-	logs, err := client.FilterLogs(context.Background(), query)
+	logs, err := r.ethClient.FilterLogs(context.Background(), query)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -70,13 +80,46 @@ func (r *RollApp) backfill() {
 			User:   common.BytesToAddress(vLog.Topics[1].Bytes()),
 			Amount: new(big.Int).SetBytes(vLog.Data),
 		}
-		log.Printf("Deposit Event: %+v\n", deposit)
+		log.Printf("Backfill Deposit Event: %+v\n", deposit)
 		r.db = append(r.db, types.UserTodos{
 			Account: deposit.User.Hex(),
 			Nonce:   0,
 			Todos:   []string{},
 			Balance: deposit.Amount,
 		})
+	}
+}
+
+func (r *RollApp) subscribeToL1() {
+	query := ethereum.FilterQuery{
+		Addresses: []common.Address{r.l1Contract},
+	}
+	// Subscribe to new logs
+	logsCh := make(chan ethtypes.Log)
+	sub, err := r.ethClient.SubscribeFilterLogs(context.Background(), query, logsCh)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("RollApp subscribed to L1.....")
+
+	for {
+		select {
+		case err := <-sub.Err():
+			log.Fatal(err)
+		case vLog := <-logsCh:
+			deposit := types.DepositEvent{
+				User:   common.BytesToAddress(vLog.Topics[1].Bytes()),
+				Amount: new(big.Int).SetBytes(vLog.Data),
+			}
+			log.Printf("New Deposit Event: %+v\n", deposit)
+			r.db = append(r.db, types.UserTodos{
+				Account: deposit.User.Hex(),
+				Nonce:   0,
+				Todos:   []string{},
+				Balance: deposit.Amount,
+			})
+		}
 	}
 }
 

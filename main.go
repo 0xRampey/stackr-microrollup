@@ -9,7 +9,9 @@ func main() {
 	// Send batches to aggregator through channels instead of RPC
 	batchChannel := make(chan types.Batch)
 	app := RollApp{}
-	go app.Init(batchChannel)
+	app.InitState()
+	go app.InitServer(batchChannel)
+	go app.subscribeToL1()
 
 	agg := Aggregator{}
 	agg.Init()
