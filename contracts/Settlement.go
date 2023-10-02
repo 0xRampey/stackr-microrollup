@@ -43,7 +43,7 @@ type SettlementTx struct {
 
 // SettlementMetaData contains all meta data concerning the Settlement contract.
 var SettlementMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"depositor\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"aggregator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balances\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"PrevHash\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"StateRoot\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"TxRoot\",\"type\":\"bytes32\"}],\"internalType\":\"structSettlement.BatchHeader\",\"name\":\"header\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"bytes\",\"name\":\"Signature\",\"type\":\"bytes\"}],\"internalType\":\"structSettlement.Tx[]\",\"name\":\"txList\",\"type\":\"tuple[]\"}],\"name\":\"submitBatch\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"batchHash\",\"type\":\"bytes32\"}],\"name\":\"BatchSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"depositor\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"aggregator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balances\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"batches\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"PrevHash\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"StateRoot\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"TxRoot\",\"type\":\"bytes32\"}],\"internalType\":\"structSettlement.BatchHeader\",\"name\":\"header\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"bytes\",\"name\":\"Signature\",\"type\":\"bytes\"}],\"internalType\":\"structSettlement.Tx[]\",\"name\":\"txList\",\"type\":\"tuple[]\"}],\"name\":\"submitBatch\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
 }
 
 // SettlementABI is the input ABI used to generate the binding from.
@@ -254,6 +254,37 @@ func (_Settlement *SettlementCallerSession) Balances(arg0 common.Address) (*big.
 	return _Settlement.Contract.Balances(&_Settlement.CallOpts, arg0)
 }
 
+// Batches is a free data retrieval call binding the contract method 0xb32c4d8d.
+//
+// Solidity: function batches(uint256 ) view returns(bytes32)
+func (_Settlement *SettlementCaller) Batches(opts *bind.CallOpts, arg0 *big.Int) ([32]byte, error) {
+	var out []interface{}
+	err := _Settlement.contract.Call(opts, &out, "batches", arg0)
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// Batches is a free data retrieval call binding the contract method 0xb32c4d8d.
+//
+// Solidity: function batches(uint256 ) view returns(bytes32)
+func (_Settlement *SettlementSession) Batches(arg0 *big.Int) ([32]byte, error) {
+	return _Settlement.Contract.Batches(&_Settlement.CallOpts, arg0)
+}
+
+// Batches is a free data retrieval call binding the contract method 0xb32c4d8d.
+//
+// Solidity: function batches(uint256 ) view returns(bytes32)
+func (_Settlement *SettlementCallerSession) Batches(arg0 *big.Int) ([32]byte, error) {
+	return _Settlement.Contract.Batches(&_Settlement.CallOpts, arg0)
+}
+
 // Deposit is a paid mutator transaction binding the contract method 0xd0e30db0.
 //
 // Solidity: function deposit() payable returns()
@@ -315,6 +346,150 @@ func (_Settlement *SettlementSession) Withdraw(amount *big.Int) (*types.Transact
 // Solidity: function withdraw(uint256 amount) returns()
 func (_Settlement *SettlementTransactorSession) Withdraw(amount *big.Int) (*types.Transaction, error) {
 	return _Settlement.Contract.Withdraw(&_Settlement.TransactOpts, amount)
+}
+
+// SettlementBatchSubmittedIterator is returned from FilterBatchSubmitted and is used to iterate over the raw logs and unpacked data for BatchSubmitted events raised by the Settlement contract.
+type SettlementBatchSubmittedIterator struct {
+	Event *SettlementBatchSubmitted // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *SettlementBatchSubmittedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(SettlementBatchSubmitted)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(SettlementBatchSubmitted)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *SettlementBatchSubmittedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *SettlementBatchSubmittedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// SettlementBatchSubmitted represents a BatchSubmitted event raised by the Settlement contract.
+type SettlementBatchSubmitted struct {
+	BatchHash [32]byte
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterBatchSubmitted is a free log retrieval operation binding the contract event 0xa53eb2683cef0c1e23d2e5dfdb2065ff4537fc3bbe0b632f0786c986435662f7.
+//
+// Solidity: event BatchSubmitted(bytes32 indexed batchHash)
+func (_Settlement *SettlementFilterer) FilterBatchSubmitted(opts *bind.FilterOpts, batchHash [][32]byte) (*SettlementBatchSubmittedIterator, error) {
+
+	var batchHashRule []interface{}
+	for _, batchHashItem := range batchHash {
+		batchHashRule = append(batchHashRule, batchHashItem)
+	}
+
+	logs, sub, err := _Settlement.contract.FilterLogs(opts, "BatchSubmitted", batchHashRule)
+	if err != nil {
+		return nil, err
+	}
+	return &SettlementBatchSubmittedIterator{contract: _Settlement.contract, event: "BatchSubmitted", logs: logs, sub: sub}, nil
+}
+
+// WatchBatchSubmitted is a free log subscription operation binding the contract event 0xa53eb2683cef0c1e23d2e5dfdb2065ff4537fc3bbe0b632f0786c986435662f7.
+//
+// Solidity: event BatchSubmitted(bytes32 indexed batchHash)
+func (_Settlement *SettlementFilterer) WatchBatchSubmitted(opts *bind.WatchOpts, sink chan<- *SettlementBatchSubmitted, batchHash [][32]byte) (event.Subscription, error) {
+
+	var batchHashRule []interface{}
+	for _, batchHashItem := range batchHash {
+		batchHashRule = append(batchHashRule, batchHashItem)
+	}
+
+	logs, sub, err := _Settlement.contract.WatchLogs(opts, "BatchSubmitted", batchHashRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(SettlementBatchSubmitted)
+				if err := _Settlement.contract.UnpackLog(event, "BatchSubmitted", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseBatchSubmitted is a log parse operation binding the contract event 0xa53eb2683cef0c1e23d2e5dfdb2065ff4537fc3bbe0b632f0786c986435662f7.
+//
+// Solidity: event BatchSubmitted(bytes32 indexed batchHash)
+func (_Settlement *SettlementFilterer) ParseBatchSubmitted(log types.Log) (*SettlementBatchSubmitted, error) {
+	event := new(SettlementBatchSubmitted)
+	if err := _Settlement.contract.UnpackLog(event, "BatchSubmitted", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }
 
 // SettlementDepositIterator is returned from FilterDeposit and is used to iterate over the raw logs and unpacked data for Deposit events raised by the Settlement contract.

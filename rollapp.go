@@ -38,7 +38,7 @@ func (r *RollApp) InitState() {
 	}
 	r.ethClient = client
 
-	r.l1Contract = common.HexToAddress("0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6")
+	r.l1Contract = common.HexToAddress("0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e")
 
 	// Backfill past events
 	r.backfill()
@@ -65,8 +65,13 @@ func (r *RollApp) InitServer(c chan types.Batch) {
 
 func (r *RollApp) backfill() {
 
+	// Calculate the signature of the event
+	eventSignature := "Deposit(address,uint256)"
+	hash := crypto.Keccak256Hash([]byte(eventSignature))
+
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{r.l1Contract},
+		Topics:    [][]common.Hash{{hash}},
 	}
 
 	logs, err := r.ethClient.FilterLogs(context.Background(), query)
@@ -91,8 +96,13 @@ func (r *RollApp) backfill() {
 }
 
 func (r *RollApp) subscribeToL1() {
+	// Calculate the signature of the event
+	eventSignature := "Deposit()"
+	hash := crypto.Keccak256Hash([]byte(eventSignature))
+
 	query := ethereum.FilterQuery{
 		Addresses: []common.Address{r.l1Contract},
+		Topics:    [][]common.Hash{{hash}},
 	}
 	// Subscribe to new logs
 	logsCh := make(chan ethtypes.Log)

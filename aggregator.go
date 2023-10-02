@@ -9,17 +9,19 @@ import (
 	settlement "stackr-mvp/contracts"
 	"stackr-mvp/types"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type Aggregator struct {
-	registered_apps []common.Address
-	latest_header   types.BatchHeader
-	ethClient       *ethclient.Client
-	l1Contract      common.Address
+	registered_apps  []common.Address
+	latestHeaderHash common.Hash
+	ethClient        *ethclient.Client
+	l1Contract       common.Address
 }
 
 func (a *Aggregator) Init() {
@@ -30,30 +32,28 @@ func (a *Aggregator) Init() {
 	}
 	a.ethClient = client
 
-	a.l1Contract = common.HexToAddress("0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6")
-	// Get registered apps from L1 contract
+	a.l1Contract = common.HexToAddress("0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e")
+	// TODO: Get registered apps from L1 contract
 	// Backfill past events (or just get the last 'settled' batch header)
+	a.backfill()
 }
 
 func (a *Aggregator) submitBatch(batch types.Batch) {
-	// TODO: Verify signature
+	// TODO: Verify signature from registered app
 
-	// If this is the genesis batch, set the latest header
-	if a.latest_header == (types.BatchHeader{}) {
-		a.latest_header = batch.Header
+	// If this is the genesis batch, ignore batch ordering check
+	if a.latestHeaderHash == (common.Hash{}) {
+		a.latestHeaderHash = batch.Header.CalculateHash() // TODO: This should be set only after L1 confirmation
 	} else {
 		// Verify batches are submitted in order
-		if !bytes.Equal(batch.Header.PrevHash.Bytes(), a.latest_header.CalculateHash().Bytes()) {
+		if !bytes.Equal(batch.Header.PrevHash.Bytes(), a.latestHeaderHash.Bytes()) {
+			log.Println(batch.Header.PrevHash.Bytes(), a.latestHeaderHash.Bytes())
 			log.Println("Batch submitted out of order")
 			return
 		}
 	}
-
-	// TODO: Verify state transition?
-	// tODO: Sign the batch
 	// Submit batch to L1 contract
 	a.submitToL1(batch)
-
 }
 
 func (a *Aggregator) submitToL1(batch types.Batch) {
@@ -109,6 +109,31 @@ func (a *Aggregator) submitToL1(batch types.Batch) {
 		log.Fatal(err)
 	}
 
-	log.Printf("tx sent: %s", tx.Hash().Hex()) // tx sent: 0x8d490e535678e9a24360e955d75b27ad307bdfb97a1dca51d0f3035dcee3e870
+	log.Printf("batch submitted: %s", tx.Hash().Hex()) // tx sent: 0x8d490e535678e9a24360e955d75b27ad307bdfb97a1dca51d0f3035dcee3e870
 
+}
+
+func (a *Aggregator) backfill() {
+
+	// Calculate the signature of the event
+	eventSignature := "BatchSubmitted(bytes32)"
+	hash := crypto.Keccak256Hash([]byte(eventSignature))
+
+	query := ethereum.FilterQuery{
+		Addresses: []common.Address{a.l1Contract},
+		Topics:    [][]common.Hash{{hash}},
+	}
+
+	logs, err := a.ethClient.FilterLogs(context.Background(), query)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	latestLog := ethtypes.Log{} // Keep track of the latest batch submission
+	// Handle logs from the past (backfill)
+	for _, vLog := range logs {
+		latestLog = vLog
+		log.Println("Backfill Submission Event!")
+	}
+	a.latestHeaderHash = common.Hash(latestLog.Topics[1].Bytes())
 }

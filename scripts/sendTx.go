@@ -22,7 +22,7 @@ func main() {
 	message := types.Message{
 		Action:  "add_todo",
 		Index:   0,
-		Content: "build a blockchain today",
+		Content: "get milk",
 	}
 	messageBytes, _ := json.Marshal(message)
 
