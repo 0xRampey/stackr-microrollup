@@ -24,7 +24,7 @@ type Aggregator struct {
 
 func (a *Aggregator) Init() {
 	// Init eth client
-	client, err := ethclient.Dial("http://127.0.0.1:8545")
+	client, err := ethclient.Dial("ws://127.0.0.1:8545")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -112,6 +112,18 @@ func (a *Aggregator) submitToL1(batch types.Batch) {
 }
 
 func (a *Aggregator) backfill() {
-	batchHashes := backfillDeposits(a.ethClient, a.l1Contract)
+	batchHashes := backfillSubmissions(a.ethClient, a.l1Contract)
 	a.latestHeaderHash = batchHashes[len(batchHashes)-1]
+}
+
+func (a *Aggregator) subscribeToSubmissions() {
+	sub, logsCh := subscribeToSubmissions(a.ethClient, a.l1Contract)
+	for {
+		select {
+		case err := <-sub.Err():
+			log.Fatal(err)
+		case vLog := <-logsCh:
+			a.latestHeaderHash = common.Hash(vLog.Topics[1].Bytes())
+		}
+	}
 }

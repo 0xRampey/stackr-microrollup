@@ -11,10 +11,12 @@ func main() {
 	app := RollApp{}
 	app.InitState()
 	go app.InitServer(batchChannel)
-	go app.subscribeToL1()
+	go app.subscribeToDeposits()
+	go app.subscribeToSubmissions()
 
 	agg := Aggregator{}
 	agg.Init()
+	go agg.subscribeToSubmissions()
 
 	log.Println("Aggregator waiting for batches.....")
 

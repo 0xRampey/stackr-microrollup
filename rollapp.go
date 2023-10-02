@@ -95,11 +95,11 @@ func (r *RollApp) backfill() {
 	}
 
 	// Also backfill batch submissions
-	batchHashes := backfillDeposits(r.ethClient, r.l1Contract)
+	batchHashes := backfillSubmissions(r.ethClient, r.l1Contract)
 	r.latestHeaderHash = batchHashes[len(batchHashes)-1]
 }
 
-func (r *RollApp) subscribeToL1() {
+func (r *RollApp) subscribeToDeposits() {
 	// Calculate the signature of the event
 	eventSignature := "Deposit()"
 	hash := crypto.Keccak256Hash([]byte(eventSignature))
@@ -133,6 +133,19 @@ func (r *RollApp) subscribeToL1() {
 				Todos:   []string{},
 				Balance: deposit.Amount,
 			})
+		}
+	}
+
+}
+
+func (r *RollApp) subscribeToSubmissions() {
+	sub, logsCh := subscribeToSubmissions(r.ethClient, r.l1Contract)
+	for {
+		select {
+		case err := <-sub.Err():
+			log.Fatal(err)
+		case vLog := <-logsCh:
+			r.latestHeaderHash = common.Hash(vLog.Topics[1].Bytes())
 		}
 	}
 }
