@@ -116,7 +116,7 @@ func (r *RollApp) backfill() {
 
 func (r *RollApp) subscribeToDeposits() {
 	// Calculate the signature of the event
-	eventSignature := "Deposit()"
+	eventSignature := "Deposit(address,uint256)"
 	hash := crypto.Keccak256Hash([]byte(eventSignature))
 
 	query := ethereum.FilterQuery{
