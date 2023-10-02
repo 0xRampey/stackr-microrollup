@@ -9,10 +9,8 @@ import (
 	settlement "stackr-mvp/contracts"
 	"stackr-mvp/types"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -114,26 +112,6 @@ func (a *Aggregator) submitToL1(batch types.Batch) {
 }
 
 func (a *Aggregator) backfill() {
-
-	// Calculate the signature of the event
-	eventSignature := "BatchSubmitted(bytes32)"
-	hash := crypto.Keccak256Hash([]byte(eventSignature))
-
-	query := ethereum.FilterQuery{
-		Addresses: []common.Address{a.l1Contract},
-		Topics:    [][]common.Hash{{hash}},
-	}
-
-	logs, err := a.ethClient.FilterLogs(context.Background(), query)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	latestLog := ethtypes.Log{} // Keep track of the latest batch submission
-	// Handle logs from the past (backfill)
-	for _, vLog := range logs {
-		latestLog = vLog
-		log.Println("Backfill Submission Event!")
-	}
-	a.latestHeaderHash = common.Hash(latestLog.Topics[1].Bytes())
+	batchHashes := backfillDeposits(a.ethClient, a.l1Contract)
+	a.latestHeaderHash = batchHashes[len(batchHashes)-1]
 }

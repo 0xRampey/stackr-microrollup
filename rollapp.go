@@ -19,14 +19,14 @@ import (
 )
 
 type RollApp struct {
-	server        *gin.Engine
-	db            []merkletree.Content
-	tree          *merkletree.MerkleTree
-	tx_list       []types.Tx
-	batches       []types.Batch
-	batch_channel chan types.Batch // Send batches to aggregator instead of RPC
-	ethClient     *ethclient.Client
-	l1Contract    common.Address
+	server           *gin.Engine
+	db               []merkletree.Content
+	tree             *merkletree.MerkleTree
+	tx_list          []types.Tx
+	latestHeaderHash common.Hash      // Convenience parameter
+	batch_channel    chan types.Batch // Send batches to aggregator instead of RPC
+	ethClient        *ethclient.Client
+	l1Contract       common.Address
 }
 
 func (r *RollApp) InitState() {
@@ -93,6 +93,10 @@ func (r *RollApp) backfill() {
 			Balance: deposit.Amount,
 		})
 	}
+
+	// Also backfill batch submissions
+	batchHashes := backfillDeposits(r.ethClient, r.l1Contract)
+	r.latestHeaderHash = batchHashes[len(batchHashes)-1]
 }
 
 func (r *RollApp) subscribeToL1() {
@@ -227,8 +231,10 @@ func (r *RollApp) updateTxList(tx types.Tx) {
 		// Submit batch to aggregator
 		log.Println("Submitting batch to aggregator.....")
 		prevHash := common.Hash(crypto.Keccak256Hash([]byte("Genesis Batch")))
-		if len(r.batches) > 0 {
-			prevHash = r.batches[len(r.batches)-1].Header.CalculateHash()
+		// Genesis batch
+		if r.latestHeaderHash == (common.Hash{}) {
+		} else {
+			prevHash = r.latestHeaderHash
 		}
 
 		blocks := make([]merkletree.Content, 0, len(r.tx_list))
