@@ -5,8 +5,10 @@ contract Settlement {
 
     event Deposit(address indexed depositor, uint256 amount);
     event BatchSubmitted(bytes32 indexed batchHash);
+    event AppRegistered(address indexed app);
     
     mapping(address => uint256) public balances;
+    mapping(address => bool) public registeredApps;
     
     function deposit() public payable {
         require(msg.value > 0, "Deposit amount must be greater than 0");
@@ -48,8 +50,7 @@ contract Settlement {
 
     function submitBatch(BatchHeader memory header, Tx[] memory txList) public onlyAggregator {
         // Pseudo code for fraud proof
-        require(checkFraudProof(header.TxRoot, txList), "Invalid batch");
-        // Calculate batch hash and append to batches
+        require(checkFraudProof(header.TxRoot, txList), "Invalid batch submitted");        
         bytes32 batch_hash = keccak256(abi.encode(header.PrevHash, header.StateRoot));
         batches.push(batch_hash);
         // emit event!
@@ -58,24 +59,18 @@ contract Settlement {
     
     // Pseudo Fraud Proof Function
     function checkFraudProof(bytes32 txRoot, Tx[] memory txList) private pure returns (bool) {
-        // TODO: Compute merkle tree of txs and compare with txRoot
-        // bytes32[] memory leaves = new bytes32[](txList.length);
-        // for (uint256 i = 0; i < txList.length; i++) {
-        //     leaves[i] = keccak256(abi.encode(txList[i].Signature));
-        // }
-        // bytes32 root = computeMerkleRoot(leaves);
+        // Pseudo code for fraud proof
         return true;
     }
 
-    function computeMerkleRoot(bytes32[] memory leaves) private pure returns (bytes32) {
-        uint256 n = leaves.length;
-        bytes32[] memory nodes = new bytes32[](n * 2);
-        for (uint256 i = 0; i < n; i++) {
-            nodes[n + i] = leaves[i];
-        }
-        for (uint256 i = n - 1; i > 0; i--) {
-            nodes[i] = keccak256(abi.encodePacked(nodes[i * 2], nodes[i * 2 + 1]));
-        }
-        return nodes[1];
+    function registerApp() public {
+        require(!registeredApps[msg.sender], "App already registered");
+        // Add more constraints here
+        registeredApps[msg.sender] = true;
+        emit AppRegistered(msg.sender);
+    }
+
+    function isAppRegistered(address app) public view returns(bool) {
+        return registeredApps[app];
     }
     }

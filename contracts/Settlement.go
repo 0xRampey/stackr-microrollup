@@ -43,7 +43,7 @@ type SettlementTx struct {
 
 // SettlementMetaData contains all meta data concerning the Settlement contract.
 var SettlementMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"batchHash\",\"type\":\"bytes32\"}],\"name\":\"BatchSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"depositor\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"aggregator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balances\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"batches\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"PrevHash\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"StateRoot\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"TxRoot\",\"type\":\"bytes32\"}],\"internalType\":\"structSettlement.BatchHeader\",\"name\":\"header\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"bytes\",\"name\":\"Signature\",\"type\":\"bytes\"}],\"internalType\":\"structSettlement.Tx[]\",\"name\":\"txList\",\"type\":\"tuple[]\"}],\"name\":\"submitBatch\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"app\",\"type\":\"address\"}],\"name\":\"AppRegistered\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"batchHash\",\"type\":\"bytes32\"}],\"name\":\"BatchSubmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"depositor\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"aggregator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balances\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"batches\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"app\",\"type\":\"address\"}],\"name\":\"isAppRegistered\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"registerApp\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"registeredApps\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"PrevHash\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"StateRoot\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"TxRoot\",\"type\":\"bytes32\"}],\"internalType\":\"structSettlement.BatchHeader\",\"name\":\"header\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"bytes\",\"name\":\"Signature\",\"type\":\"bytes\"}],\"internalType\":\"structSettlement.Tx[]\",\"name\":\"txList\",\"type\":\"tuple[]\"}],\"name\":\"submitBatch\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
 }
 
 // SettlementABI is the input ABI used to generate the binding from.
@@ -285,6 +285,68 @@ func (_Settlement *SettlementCallerSession) Batches(arg0 *big.Int) ([32]byte, er
 	return _Settlement.Contract.Batches(&_Settlement.CallOpts, arg0)
 }
 
+// IsAppRegistered is a free data retrieval call binding the contract method 0x8403be91.
+//
+// Solidity: function isAppRegistered(address app) view returns(bool)
+func (_Settlement *SettlementCaller) IsAppRegistered(opts *bind.CallOpts, app common.Address) (bool, error) {
+	var out []interface{}
+	err := _Settlement.contract.Call(opts, &out, "isAppRegistered", app)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// IsAppRegistered is a free data retrieval call binding the contract method 0x8403be91.
+//
+// Solidity: function isAppRegistered(address app) view returns(bool)
+func (_Settlement *SettlementSession) IsAppRegistered(app common.Address) (bool, error) {
+	return _Settlement.Contract.IsAppRegistered(&_Settlement.CallOpts, app)
+}
+
+// IsAppRegistered is a free data retrieval call binding the contract method 0x8403be91.
+//
+// Solidity: function isAppRegistered(address app) view returns(bool)
+func (_Settlement *SettlementCallerSession) IsAppRegistered(app common.Address) (bool, error) {
+	return _Settlement.Contract.IsAppRegistered(&_Settlement.CallOpts, app)
+}
+
+// RegisteredApps is a free data retrieval call binding the contract method 0xa6c4cce9.
+//
+// Solidity: function registeredApps(address ) view returns(bool)
+func (_Settlement *SettlementCaller) RegisteredApps(opts *bind.CallOpts, arg0 common.Address) (bool, error) {
+	var out []interface{}
+	err := _Settlement.contract.Call(opts, &out, "registeredApps", arg0)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// RegisteredApps is a free data retrieval call binding the contract method 0xa6c4cce9.
+//
+// Solidity: function registeredApps(address ) view returns(bool)
+func (_Settlement *SettlementSession) RegisteredApps(arg0 common.Address) (bool, error) {
+	return _Settlement.Contract.RegisteredApps(&_Settlement.CallOpts, arg0)
+}
+
+// RegisteredApps is a free data retrieval call binding the contract method 0xa6c4cce9.
+//
+// Solidity: function registeredApps(address ) view returns(bool)
+func (_Settlement *SettlementCallerSession) RegisteredApps(arg0 common.Address) (bool, error) {
+	return _Settlement.Contract.RegisteredApps(&_Settlement.CallOpts, arg0)
+}
+
 // Deposit is a paid mutator transaction binding the contract method 0xd0e30db0.
 //
 // Solidity: function deposit() payable returns()
@@ -304,6 +366,27 @@ func (_Settlement *SettlementSession) Deposit() (*types.Transaction, error) {
 // Solidity: function deposit() payable returns()
 func (_Settlement *SettlementTransactorSession) Deposit() (*types.Transaction, error) {
 	return _Settlement.Contract.Deposit(&_Settlement.TransactOpts)
+}
+
+// RegisterApp is a paid mutator transaction binding the contract method 0x6d6c85c3.
+//
+// Solidity: function registerApp() returns()
+func (_Settlement *SettlementTransactor) RegisterApp(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Settlement.contract.Transact(opts, "registerApp")
+}
+
+// RegisterApp is a paid mutator transaction binding the contract method 0x6d6c85c3.
+//
+// Solidity: function registerApp() returns()
+func (_Settlement *SettlementSession) RegisterApp() (*types.Transaction, error) {
+	return _Settlement.Contract.RegisterApp(&_Settlement.TransactOpts)
+}
+
+// RegisterApp is a paid mutator transaction binding the contract method 0x6d6c85c3.
+//
+// Solidity: function registerApp() returns()
+func (_Settlement *SettlementTransactorSession) RegisterApp() (*types.Transaction, error) {
+	return _Settlement.Contract.RegisterApp(&_Settlement.TransactOpts)
 }
 
 // SubmitBatch is a paid mutator transaction binding the contract method 0x95eb88bc.
@@ -346,6 +429,150 @@ func (_Settlement *SettlementSession) Withdraw(amount *big.Int) (*types.Transact
 // Solidity: function withdraw(uint256 amount) returns()
 func (_Settlement *SettlementTransactorSession) Withdraw(amount *big.Int) (*types.Transaction, error) {
 	return _Settlement.Contract.Withdraw(&_Settlement.TransactOpts, amount)
+}
+
+// SettlementAppRegisteredIterator is returned from FilterAppRegistered and is used to iterate over the raw logs and unpacked data for AppRegistered events raised by the Settlement contract.
+type SettlementAppRegisteredIterator struct {
+	Event *SettlementAppRegistered // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *SettlementAppRegisteredIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(SettlementAppRegistered)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(SettlementAppRegistered)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *SettlementAppRegisteredIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *SettlementAppRegisteredIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// SettlementAppRegistered represents a AppRegistered event raised by the Settlement contract.
+type SettlementAppRegistered struct {
+	App common.Address
+	Raw types.Log // Blockchain specific contextual infos
+}
+
+// FilterAppRegistered is a free log retrieval operation binding the contract event 0x0d540ad8f39e07d19909687352b9fa017405d93c91a6760981fbae9cf28bfef7.
+//
+// Solidity: event AppRegistered(address indexed app)
+func (_Settlement *SettlementFilterer) FilterAppRegistered(opts *bind.FilterOpts, app []common.Address) (*SettlementAppRegisteredIterator, error) {
+
+	var appRule []interface{}
+	for _, appItem := range app {
+		appRule = append(appRule, appItem)
+	}
+
+	logs, sub, err := _Settlement.contract.FilterLogs(opts, "AppRegistered", appRule)
+	if err != nil {
+		return nil, err
+	}
+	return &SettlementAppRegisteredIterator{contract: _Settlement.contract, event: "AppRegistered", logs: logs, sub: sub}, nil
+}
+
+// WatchAppRegistered is a free log subscription operation binding the contract event 0x0d540ad8f39e07d19909687352b9fa017405d93c91a6760981fbae9cf28bfef7.
+//
+// Solidity: event AppRegistered(address indexed app)
+func (_Settlement *SettlementFilterer) WatchAppRegistered(opts *bind.WatchOpts, sink chan<- *SettlementAppRegistered, app []common.Address) (event.Subscription, error) {
+
+	var appRule []interface{}
+	for _, appItem := range app {
+		appRule = append(appRule, appItem)
+	}
+
+	logs, sub, err := _Settlement.contract.WatchLogs(opts, "AppRegistered", appRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(SettlementAppRegistered)
+				if err := _Settlement.contract.UnpackLog(event, "AppRegistered", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseAppRegistered is a log parse operation binding the contract event 0x0d540ad8f39e07d19909687352b9fa017405d93c91a6760981fbae9cf28bfef7.
+//
+// Solidity: event AppRegistered(address indexed app)
+func (_Settlement *SettlementFilterer) ParseAppRegistered(log types.Log) (*SettlementAppRegistered, error) {
+	event := new(SettlementAppRegistered)
+	if err := _Settlement.contract.UnpackLog(event, "AppRegistered", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }
 
 // SettlementBatchSubmittedIterator is returned from FilterBatchSubmitted and is used to iterate over the raw logs and unpacked data for BatchSubmitted events raised by the Settlement contract.

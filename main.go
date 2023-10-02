@@ -7,7 +7,7 @@ import (
 
 func main() {
 	// Send batches to aggregator through channels instead of RPC
-	batchChannel := make(chan types.Batch)
+	batchChannel := make(chan types.SignedBatch)
 	app := RollApp{}
 	app.InitState()
 	go app.InitServer(batchChannel)

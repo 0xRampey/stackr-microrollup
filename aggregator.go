@@ -16,7 +16,7 @@ import (
 )
 
 type Aggregator struct {
-	registered_apps  []common.Address
+	registeredApps   []common.Address
 	latestHeaderHash common.Hash
 	ethClient        *ethclient.Client
 	l1Contract       common.Address
@@ -30,15 +30,18 @@ func (a *Aggregator) Init() {
 	}
 	a.ethClient = client
 
-	a.l1Contract = common.HexToAddress("0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e")
-	// TODO: Get registered apps from L1 contract
+	a.l1Contract = common.HexToAddress("0x8464135c8F25Da09e49BC8782676a84730C318bC")
 	// Backfill past events (or just get the last 'settled' batch header)
 	a.backfill()
 }
 
-func (a *Aggregator) submitBatch(batch types.Batch) {
-	// TODO: Verify signature from registered app
-
+func (a *Aggregator) submitBatch(b types.SignedBatch) {
+	// Verify signature from registered app
+	if !a.verifyAppRegistered(b) {
+		log.Println("App not registered in", a.registeredApps)
+		return
+	}
+	batch := b.Batch
 	// If this is the genesis batch, ignore batch ordering check
 	if a.latestHeaderHash == (common.Hash{}) {
 		a.latestHeaderHash = batch.Header.CalculateHash() // TODO: This should be set only after L1 confirmation
@@ -62,18 +65,18 @@ func (a *Aggregator) submitToL1(batch types.Batch) {
 
 	batchHeader := settlement.SettlementBatchHeader{
 		PrevHash:  batch.Header.PrevHash,
-		StateRoot: [32]byte(batch.Header.StateRoot.Hash),
-		TxRoot:    [32]byte(batch.Header.TxRoot.Hash),
+		StateRoot: [32]byte(batch.Header.StateRoot.Bytes()),
+		TxRoot:    [32]byte(batch.Header.TxRoot.Bytes()),
 	}
 
-	settlementTxs := make([]settlement.SettlementTx, len(batch.Tx_list))
-	for i, tx := range batch.Tx_list {
+	settlementTxs := make([]settlement.SettlementTx, len(batch.TxList))
+	for i, tx := range batch.TxList {
 		settlementTxs[i] = settlement.SettlementTx{
 			Signature: []byte(tx.Signature),
 		}
 	}
 
-	privateKey, err := crypto.HexToECDSA("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+	privateKey, err := crypto.HexToECDSA("59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -113,7 +116,11 @@ func (a *Aggregator) submitToL1(batch types.Batch) {
 
 func (a *Aggregator) backfill() {
 	batchHashes := backfillSubmissions(a.ethClient, a.l1Contract)
-	a.latestHeaderHash = batchHashes[len(batchHashes)-1]
+	if len(batchHashes) > 0 {
+		a.latestHeaderHash = batchHashes[len(batchHashes)-1]
+	}
+
+	a.registeredApps = backfillRegistrations(a.ethClient, a.l1Contract)
 }
 
 func (a *Aggregator) subscribeToSubmissions() {
@@ -123,7 +130,22 @@ func (a *Aggregator) subscribeToSubmissions() {
 		case err := <-sub.Err():
 			log.Fatal(err)
 		case vLog := <-logsCh:
+			log.Println("Aggregator received batch confirmation!")
 			a.latestHeaderHash = common.Hash(vLog.Topics[1].Bytes())
 		}
 	}
+}
+
+func (a *Aggregator) verifyAppRegistered(b types.SignedBatch) bool {
+	sig := b.Signature
+
+	signeeAddress := b.Batch.GetSigneeAddress(sig)
+	log.Println("Submitted app's address: ", signeeAddress.Hex())
+
+	for _, app := range a.registeredApps {
+		if app == signeeAddress {
+			return true
+		}
+	}
+	return false
 }

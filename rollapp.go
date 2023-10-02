@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
+	settlement "stackr-mvp/contracts"
 	"stackr-mvp/types"
 
 	"github.com/cbergoon/merkletree"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -23,10 +26,11 @@ type RollApp struct {
 	db               []merkletree.Content
 	tree             *merkletree.MerkleTree
 	tx_list          []types.Tx
-	latestHeaderHash common.Hash      // Convenience parameter
-	batch_channel    chan types.Batch // Send batches to aggregator instead of RPC
+	latestHeaderHash common.Hash            // Convenience parameter
+	batch_channel    chan types.SignedBatch // Send batches to aggregator instead of RPC
 	ethClient        *ethclient.Client
 	l1Contract       common.Address
+	privateKey       *ecdsa.PrivateKey // Unsafe, I know! But this is just a demo. In prod, it'd be a signer loaded from a gitignored .env file
 }
 
 func (r *RollApp) InitState() {
@@ -38,7 +42,7 @@ func (r *RollApp) InitState() {
 	}
 	r.ethClient = client
 
-	r.l1Contract = common.HexToAddress("0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e")
+	r.l1Contract = common.HexToAddress("0x8464135c8F25Da09e49BC8782676a84730C318bC")
 
 	// Backfill past events
 	r.backfill()
@@ -50,9 +54,18 @@ func (r *RollApp) InitState() {
 	}
 	r.tree = t
 
+	// Load a user's private key
+	privateKey, err := crypto.HexToECDSA("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	r.privateKey = privateKey
+
+	// Register app on L1 contract
+	r.registerApp()
 }
 
-func (r *RollApp) InitServer(c chan types.Batch) {
+func (r *RollApp) InitServer(c chan types.SignedBatch) {
 	// Start server
 	r.server = gin.Default()
 	r.server.POST("/tx", r.handleTx)
@@ -96,7 +109,9 @@ func (r *RollApp) backfill() {
 
 	// Also backfill batch submissions
 	batchHashes := backfillSubmissions(r.ethClient, r.l1Contract)
-	r.latestHeaderHash = batchHashes[len(batchHashes)-1]
+	if len(batchHashes) > 0 {
+		r.latestHeaderHash = batchHashes[len(batchHashes)-1]
+	}
 }
 
 func (r *RollApp) subscribeToDeposits() {
@@ -145,6 +160,7 @@ func (r *RollApp) subscribeToSubmissions() {
 		case err := <-sub.Err():
 			log.Fatal(err)
 		case vLog := <-logsCh:
+			log.Println("RollApp received batch confirmation!")
 			r.latestHeaderHash = common.Hash(vLog.Topics[1].Bytes())
 		}
 	}
@@ -240,7 +256,7 @@ func (r *RollApp) updateState(userTodos types.UserTodos, m types.Message) (types
 
 func (r *RollApp) updateTxList(tx types.Tx) {
 	r.tx_list = append(r.tx_list, tx)
-	if len(r.tx_list) > 2 { // Batch every x txs (2 here for testing purposes)
+	if len(r.tx_list) > 3 { // Batch every x txs (2 here for testing purposes)
 		// Submit batch to aggregator
 		log.Println("Submitting batch to aggregator.....")
 		prevHash := common.Hash(crypto.Keccak256Hash([]byte("Genesis Batch")))
@@ -261,15 +277,57 @@ func (r *RollApp) updateTxList(tx types.Tx) {
 
 		header := types.BatchHeader{
 			PrevHash:  prevHash,
-			StateRoot: r.tree.Root,
-			TxRoot:    txTree.Root,
+			StateRoot: common.Hash(r.tree.MerkleRoot()),
+			TxRoot:    common.Hash(txTree.MerkleRoot()),
 		}
 		batch := types.Batch{
-			Header:  header,
-			Tx_list: r.tx_list,
+			Header: header,
+			TxList: r.tx_list,
 		}
-		r.batch_channel <- batch
+		// Sign batch
+
+		r.batch_channel <- types.SignedBatch{
+			Batch:     batch,
+			Signature: batch.GetSignature(r.privateKey),
+		}
 		// Flush txs
 		r.tx_list = []types.Tx{}
 	}
+}
+
+func (r *RollApp) registerApp() {
+	contract, err := settlement.NewSettlement(r.l1Contract, r.ethClient)
+	if err != nil {
+		log.Fatal(err)
+	}
+	publicKey := r.privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("error casting public key to ECDSA")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	log.Println(fromAddress.Hex()) // 0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1
+	nonce, err := r.ethClient.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gasPrice, err := r.ethClient.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	auth := bind.NewKeyedTransactor(r.privateKey)
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0)     // in wei
+	auth.GasLimit = uint64(300000) // in units
+	auth.GasPrice = gasPrice
+
+	tx, err := contract.RegisterApp(auth)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("App registration sent: %s", tx.Hash().Hex())
 }

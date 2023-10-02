@@ -35,6 +35,31 @@ func backfillSubmissions(client *ethclient.Client, l1Contract common.Address) []
 	return batchHashes
 }
 
+func backfillRegistrations(client *ethclient.Client, l1Contract common.Address) []common.Address {
+	// Calculate the signature of the event
+	eventSignature := "AppRegistered(address)"
+	hash := crypto.Keccak256Hash([]byte(eventSignature))
+
+	query := ethereum.FilterQuery{
+		Addresses: []common.Address{l1Contract},
+		Topics:    [][]common.Hash{{hash}},
+	}
+
+	logs, err := client.FilterLogs(context.Background(), query)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	addresses := []common.Address{}
+	// Handle logs from the past (backfill)
+	for _, vLog := range logs {
+		addressBytes := vLog.Topics[1].Bytes()
+		address := common.BytesToAddress(addressBytes)
+		addresses = append(addresses, address)
+	}
+	return addresses
+}
+
 func subscribeToSubmissions(client *ethclient.Client, l1Contract common.Address) (ethereum.Subscription, chan ethtypes.Log) {
 	// Calculate the signature of the event
 	eventSignature := "BatchSubmitted(bytes32)"
